@@ -54,23 +54,22 @@ U_a_3_sigma = U(RR*A0);
 legStr = {'$X~^{1}\Sigma^+_g$','$a~^{3}\Sigma^+_u$'};
 
 hF=figure(10);
-hF.Position=[100 100 900 500];
+hF.Position=[100 500 600 400];
 clf
 set(gcf,'color','w');
 
 % Zoom out potential energies
-subplot(121)
-plot(RR,U_X_1_sigma*0.01/10^3,'linewidth',2);
+ax1=axes;
+p1=plot(RR,U_X_1_sigma*0.01/10^3,'linewidth',2);
 hold on
-plot(RR,U_a_3_sigma*0.01/10^3,'linewidth',2);
-xlim([2.5 11]);
-ylim([-4.5 .5]);
+p2=plot(RR,U_a_3_sigma*0.01/10^3,'linewidth',2);
+xlim([2.5 14.1]);
+ylim([-4.5 .8]);
 ylabel('V (10^3 cm^-1)');
 xlabel(['separation (' char(197) ')']);
-legend(legStr,'interpreter','latex','fontsize',12,'location','southeast');
-set(gca,'xgrid','on','ygrid','on','fontsize',12,...
-    'box','on','linewidth',1);
-
+set(gca,'xgrid','off','ygrid','off','fontsize',14,...
+    'box','on','linewidth',1,'units','normalized',...
+    'fontname','times');
 
 % Match right boundary to be in THz
 yL = get(gca,'YLim');
@@ -82,60 +81,29 @@ ylabel('energy (THz)');
 set(gca,'YColor','k');
 yyaxis left
 
-% Zoom in plot to show C6
-subplot(122);
-plot(RR,U_X_1_sigma*0.01,'linewidth',3);
+legend([p1 p2],legStr,'interpreter','latex','fontsize',14,'location','northeast',...
+    'orientation','horizontal');
+
+ax2 = axes('units','normalized');
+ax2.Position(3)=.25;
+ax2.Position(4)= .2;
+ax2.Position(1) = ax1.Position(1)-ax2.Position(3)+ax1.Position(3);
+ax2.Position(2) = ax1.Position(2);
+
+plot(RR,U_X_1_sigma*.01,'linewidth',2);
 hold on
-plot(RR,U_a_3_sigma*0.01,'--','linewidth',3);
-xlim([11 30]);
-ylim([-3 0]);
-ylabel('V (cm^-1)');
-xlabel(['separation (' char(197) ')']);
-legend(legStr,'interpreter','latex','location','southeast','fontsize',12);
-set(gca,'xgrid','on','ygrid','on','fontsize',12,...
-    'box','on','linewidth',1);
-
-% Right axis to show in GHz
-yL = get(gca,'YLim');
-yL_m=yL*1e2; % convert to inverse meters
-yL_Hz = yL_m*cL; % Limits in Hz
-yyaxis right
-ylim(yL_Hz*1e-9);
-ylabel('energy (GHz)');
-set(gca,'YColor','k');
-yyaxis left
-
-%% Plot Potential Curveds
-
-legStr = {'$X~^{1}\Sigma^+_g$','$a~^{3}\Sigma^+_u$'};
-
-hF=figure(2);
-hF.Position=[100 100 1200 400];
-clf
-set(gcf,'color','w');
-
-% Zoom out potential energies
-plot(RR,U_X_1_sigma*0.01/10^3,'linewidth',2);
-hold on
-plot(RR,U_a_3_sigma*0.01/10^3,'linewidth',2);
-xlim([2.5 20]);
-ylim([-4.5 1]);
-ylabel('V (10^3 cm^-1)');
-xlabel(['separation (' char(197) ')']);
-legend(legStr,'interpreter','latex','fontsize',12,'location','southeast');
-set(gca,'xgrid','off','ygrid','off','fontsize',12,...
-    'box','on','linewidth',1);
+plot(RR,U_a_3_sigma*.01,'--','linewidth',2);
 
 
-% Match right boundary to be in THz
-yL = get(gca,'YLim');
-yL_m=yL*1e5; % convert to inverse meters
-yL_Hz = yL_m*cL; % Limits in Hz
-yyaxis right
-ylim(yL_Hz*1e-12);
-ylabel('energy (THz)');
-set(gca,'YColor','k');
-yyaxis left
+xlim([10.5 14.5]);
+ylim([-17 0]);
+
+set(gca,'ytick',[-15 -10 -5 0],'xaxislocation','top',...
+    'xtick',[11 12 13 14]);
+
+ylabel('V $(\mathrm{cm}^{-1})$','interpreter','latex','fontsize',10);
+xlabel(['separation ($\AA$)'],'interpreter','latex');
+
 
 %% Diagonalize X state
 U_xsigma_blah = (U_X_1_sigma*cL*h)/(hbar^2/(2*mu*A0^2));
@@ -152,27 +120,6 @@ eng_J = [Xsigma.E] * (hbar^2/(2*mu*A0^2));
 eng_cm = eng_J/(cL*h);
 eng_cm = num2cell(eng_cm);
 [Xsigma(:).E_cm] = deal(eng_cm{:});
-
-
-%% Plot the Energies vs eigenvalue
-figure(2);
-co = get(gca,'colororder');
-clf
-
-Ub = min(U_X_1_sigma);
-
-Eb13 = (-[Xsigma.E_cm]).^(1/3);
-nu = [Xsigma.nodes];
-
-xlim([70 86])
-xlabel('vibrational number');
-ylabel('(binding energy)^{1/3}');
-
-tt=linspace(70,90,10);
-pp=polyfit(nu(end-10:end),Eb13(end-10:end),1);
-hold on
-plot(tt,pp(1)*tt+pp(2),'r-');
-plot(nu,Eb13,'ko');
 
 %% Diagonalize a State
 if m==39
@@ -191,25 +138,6 @@ eng_J = [asigma.E] * (hbar^2/(2*mu*A0^2));
 eng_cm = eng_J/(cL*h);
 eng_cm = num2cell(eng_cm);
 [asigma(:).E_cm] = deal(eng_cm{:});
-
-
-%% Plot the Energies vs eigenvalue
-
-figure(3);
-clf
-
-
-Eb13 = (-[asigma.E_cm]).^(1/3);
-
-plot(Eb13,'ko');
-xlim([23 28])
-xlabel('vibrational number');
-ylabel('(binding energy)^{1/3}');
-
-tt=linspace(23,30,10);
-pp=polyfit(21:27,Eb13(21:end),1);
-hold on
-plot(tt,pp(1)*tt+pp(2),'r-');
 
 %% Plot the Energies vs eigenvalue
 hF=figure(2);
@@ -247,12 +175,6 @@ set(gca,'box','off','linewidth',1,'fontname','times','fontsize',14,...
     'XColor',.9*co(1,:));
 hold on
 pxf=plot(tt,X_pp(1)*tt+X_pp(2),'-','color',co(1,:)*.8,'linewidth',2);
-
-
-
-
-
-    
 
 
 hAx(1)=gca;
@@ -316,7 +238,11 @@ xlabel(['separation (' char(197) ')']);
 str = {'$X~^{1}\Sigma^+_g$'};
 legend(str,'interpreter','latex','fontsize',16,'location','southeast');
 set(gca,'xgrid','on','ygrid','on','fontsize',12,...
-    'box','on','linewidth',1);
+    'box','on','linewidth',1,'fontname','times');
+
+text(.95,.2,mass_str,'interpreter','latex',...
+    'units','normalized','horizontalalignment','right',...
+    'verticalalignment','top','fontsize',24,'color','k');
 
 % asigma
 subplot(122)
@@ -338,9 +264,14 @@ ylabel('V (10^3 cm^-1)');
 xlabel(['separation (' char(197) ')']);
 str={'$a~^{3}\Sigma^+_u$'};
 set(gca,'xgrid','on','ygrid','on','fontsize',12,...
-    'box','on','linewidth',1);
+    'box','on','linewidth',1,'fontname','times');
 legend(str,'interpreter','latex','fontsize',16,'location','southeast');
 
+
+
+text(.95,.2,mass_str,'interpreter','latex',...
+    'units','normalized','horizontalalignment','right',...
+    'verticalalignment','top','fontsize',24,'color','k');
 %% Zoom in on final states
 
 str_vdw = '$R_\matrhm{vdW} = \frac{1}{2}\left(\frac{2\mu C_6}{\hbar^2}\right)^4$';
@@ -383,7 +314,7 @@ for kk=(length(Xsigma)-1):length(Xsigma)
     plot([r_1 r_2],[1 1]*E,'-','color',co(1,:),'linewidth',2); 
     plot([r_2 Xe+5],[1 1]*E,'--','color',co(1,:),'linewidth',1); 
     
-    str = ['$\nu=' num2str(kk) '$' newline ...
+    str = ['$\nu=' num2str(Xsigma(kk).nodes) '$' newline ...
         '$' num2str(round(1e3*E,1)) '~\mathrm{MHz},~' num2str(round(r_2,1)) 'a_0$'];
 
     text(195,E+.02,str,'verticalalignment',...
