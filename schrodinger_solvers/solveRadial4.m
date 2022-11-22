@@ -210,9 +210,9 @@ end
 
 
 [~,npt.r_M] = findTurningPoints(r,U,Ug);
-if n==85
-   npt.r_H = 250;
-end
+% if n==85
+%    npt.r_H = 250;
+% end
 
 %% Big Adjust
 
@@ -250,13 +250,12 @@ if dN || dm_sign
     
     % Get temporary input
     nptSub = npt;
-    nptSub.r_L = x_nodes(end-10);
+    nptSub.r_L = x_nodes(end-6);
     
     [n_nodes_s,err_s,Y_s,X_s,r_nodeVec_s,Df_s,Db_s]=integrateSchrodinger(nptSub);
     
-    n_nodes_set = n_nodes_s + dN;    
     
-    dE = min([1e-2 abs(npt.E)*0.05]);    
+    dE = min([1e-2 abs(npt.E)*0.02]);    
     if dN~=0
         warning(['Node Want : ' num2str(n) '; Node Have : ' num2str(n_out) '. Adjusting.']); 
 
@@ -274,7 +273,9 @@ if dN || dm_sign
                dE=dE/2;            
             else
                 nptSub.E = nptSub.E + sgn*dE;        
-                fprintf([num2str(nptSub.E) ' ']);
+                [~,r_M_init] = findTurningPoints(r,U,nptSub.E);
+                nptSub.r_M = r_M_init;
+%                 fprintf([num2str(nptSub.E) ' ']);
                 [n_nodes_s,err_s,Y_s,X_s,r_nodeVec_s,Df_s,Db_s]=integrateSchrodinger(nptSub);                
                 
                 % Get the last node
@@ -303,12 +304,19 @@ if dN || dm_sign
             end  
         end
     end   
-    
+
     % Recalculate matching point
+%     nptSub.r_L = x_nodes(end-5);
     [~,r_M_init] = findTurningPoints(r,U,nptSub.E);
     nptSub.r_M = r_M_init;
-    [n_nodes_s,err_s,Y_s,X_s,r_nodeVec_s,Df_s,Db_s]=integrateSchrodinger(nptSub);
     
+    npt.r_M = r_M_init;
+    npt.E = nptSub.E;
+    [n_out,err,Y,X,x_nodes,Df,Db]=integrateSchrodinger(npt);
+    
+    nptSub.r_L = x_nodes(end-6);    
+    [n_nodes_s,err_s,Y_s,X_s,r_nodeVec_s,Df_s,Db_s]=integrateSchrodinger(nptSub);
+
     % Iterate until slopes have same sign    
     if sign(Db_s)~=sign(Df_s)
         warning('adjusting until slopes have same sign');
@@ -323,7 +331,7 @@ if dN || dm_sign
                 dE=dE/5;            
             else
                 nptSub.E = nptSub.E + sgn*dE;        
-                fprintf([num2str(nptSub.E) ' ']);
+%                 fprintf([num2str(nptSub.E) ' ']);
                 [n_nodes_s,err_s,Y_s,X_s,r_nodeVec_s,Df_s,Db_s]=integrateSchrodinger(nptSub);
             end
             
@@ -335,8 +343,7 @@ if dN || dm_sign
 
         
             
-            if Niter>100
-                
+            if Niter>100                
                 keyboard
                 return
             end  
@@ -344,6 +351,8 @@ if dN || dm_sign
         
 
         warning('adjusting until slope magnitude changes');
+        
+
         s0 = sign(Df_s-Db_s);
         s = s0;
         Niter=0;
@@ -352,7 +361,7 @@ if dN || dm_sign
                 dE=dE/5;            
             else
                 nptSub.E = nptSub.E + sgn*dE;        
-                fprintf([num2str(nptSub.E) ' ']);
+%                 fprintf([num2str(nptSub.E) ' ']);
                 [n_nodes_s,err_s,Y_s,X_s,r_nodeVec_s,Df_s,Db_s]=integrateSchrodinger(nptSub);
                 s=sign(Df_s-Db_s);
             end  
@@ -376,13 +385,16 @@ if dN || dm_sign
 end
 
 %% Adjust matching point to turning point
-
+r_M_old = npt.r_M;
 [~,r_M_init] = findTurningPoints(r,U,npt.E);
 npt.r_M = r_M_init;
 [n_out,err,Y,X,x_nodes,Df,Db]=integrateSchrodinger(npt);   
 
 if n_out~=n
    keyboard 
+   
+   npt.r_M = r_M_old;
+    [n_out,err,Y,X,x_nodes,Df,Db]=integrateSchrodinger(npt);  
 end
 
 
@@ -421,6 +433,10 @@ Ug = npt.E;
 
 eThresh = 0.04;
 eThresh =  1e-2;
+
+if n==86
+   eThresh = 1e-4; 
+end
 
 if abs(err) > eThresh
    fprintf('optimizing energy ...'); 
@@ -538,9 +554,9 @@ function [n_nodes,err,Y,X,r_nodeVec,Df,Db]=integrateSchrodinger(npt)
     
     % Calculate integrationt
 %     tic
-    [rf,yf] = ode45(@(r,y) dydr(r,y),[r_L r_M],[yf_0;zf_0]);
+    [rf,yf] = ode45(@(r,y) dydr(r,y),[r_L r_M],[yf_0;zf_0],options);
 %     toc
-    [rb,yb] = ode45(@(r,y) dydr(r,y),[r_H r_M],[yb_inf;zb_inf]);   
+    [rb,yb] = ode45(@(r,y) dydr(r,y),[r_H r_M],[yb_inf;zb_inf],options);   
 %     toc
     
     if sum(sum(isnan(yb)))>0 || sum(sum(isnan(yf)))>0
