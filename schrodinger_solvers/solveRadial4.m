@@ -1,24 +1,13 @@
-function output=solveRadial4(r,U,nMax,figstart)
-
-%%
-%% Settings
+function output=solveRadial4(r,U,nMax)
 
 doPlot = 1;
 
-%% Variables to Save
-engs=zeros(nMax,1);
-errs=zeros(nMax,1);
-r_inner=zeros(nMax,1);
-r_outer=zeros(nMax,1);
-Xs={};
-Ys={};
-
-%% Initialize Strcuture
+% Potential Energy interpolant function
 npt = struct;
-% npt.r2U = @(rq) interp1(r,U,rq);
-
 npt.r2U = @(rq) interp1qr(r,U,rq);
 %% Calculate Curvature and HO energy
+% To find the initial energy, do a harmonic approximation about the zero
+% point.
 
 [~,imin]=min(U);
 ii = [(imin-10):(imin+10)]';
@@ -26,35 +15,30 @@ ii = [(imin-10):(imin+10)]';
 pp=polyfit(r(ii),U(ii),2);
 omega = 2*sqrt(pp(1));
 dE = omega;
-%% Find Ground State
-% Initial n = 0
+
+% Ground state potential energy
 n = 1;
 Ug = min(U) + dE*(0.5 + (n-1));
 
+%% Find Ground State
+
+% Find the ground state
 out = findState(r,U,Ug,n-1,0);
 
 clear output
 output(1) = out;
-
-engs(n) = out.E;
-errs(n) = out.err;
-Xs{n} = out.X;
-Ys{n} = out.Y;
-
 str=[num2str(n-1) ' nodes : E=' num2str(out.E) ' e=' num2str(out.err)];
 disp(str);
-
 dEg = 2*(out.E - min(U));
 
 if doPlot
-    plotWavefunction(out,1+figstart);
+    plotWavefunction(out);
 end
-
 
 %% Iterate on higher states
 
 for n=2:nMax
-    Ug = dEg + engs(n-1);
+    Ug = dEg + output(n-1).E;
     
     if (nMax-n)<2
         doDetail = 1;
@@ -63,33 +47,27 @@ for n=2:nMax
     end
     
     out =findState(r,U,Ug,n-1,doDetail);   
-
-    output(n) = out;
-    
-    errs(n) = out.err;
-    Xs{n} = out.X;
-    Ys{n} = out.Y;
-    engs(n) = out.E;    
+    output(n) = out;    
     
     % Display output
     str=[num2str(n-1) ' nodes : E=' num2str(out.E) ' e=' num2str(out.err)];
     disp(str);
 
-    % Find seperation to make new guess    
+    % Find separation to make new guess    
     if n<6    
-        dEg = out.E-engs(n-1);
+        dEg = out.E-output(n-1).E;
     else
-        pp=polyfit((n-5):n,(engs((n-5):n))',2);
+        pp=polyfit((n-5):n,[output(n-5:n).E],2);
         Unew = polyval(pp,n+1);   
-        dEg = Unew - engs(n);        
-        if Unew < engs(n) || Unew > 0
-            dEg = (out.E - engs(n-1))*0.1;
+        dEg = Unew - output(n).E;        
+        if Unew < output(n).E || Unew > 0
+            dEg = (out.E - output(n-1).E)*0.1;
         end
     end 
 
     % Update Plots
     if doPlot
-        plotWavefunction(out,figstart+n);       
+        plotWavefunction(out);       
     end
 
 end
@@ -97,7 +75,7 @@ end
    
 end
 
-function plotWavefunction(wf,num)
+function plotWavefunction(wf)
     figure(99);
     clf
     set(gcf,'color','w','windowstyle','docked');
@@ -106,7 +84,6 @@ function plotWavefunction(wf,num)
     
     yyaxis right
     p2=plot(wf.X,wf.Y(:,2),'--','color',co(2,:),'linewidth',1);     
-%     hold on
     set(gca,'YColor',co(2,:)*.9);
     
     ylabel('derivative $y''(r)$','interpreter','latex');
@@ -138,19 +115,20 @@ function plotWavefunction(wf,num)
    drawnow;
 end
 
-
+% Calculate the classical turning points
 function [r_L,r_M] = findTurningPoints(r,U,eng)
-    r2U = @(rq) interp1(r,U,rq,'linear','extrap');
 
+    % Interpolant function
     r2U = @(rq) interp1qr(r,U,rq);
 
-    
+    % Find the crossing point
     ind=find(U<eng,1);
-    r_L = r(ind);
     
+    % Numerically find the actual zero crossing
+    r_L = r(ind);    
     r_L = fzero(@(r) r2U(r)-eng,r_L);
 
-    
+    % Do the same thing but for the other turning point
     ind=find(flip(U<eng),1);
     ind = length(U)-ind;    
     r_M = r(ind);    
@@ -160,7 +138,7 @@ end
 function out = findState(r,U,Ug,n,doDetail)
 
 out = struct;
-%% SEtup input
+
 npt = struct;
 npt.E = Ug;
 npt.r2U = @(rq) interp1(r,U,rq);
@@ -173,25 +151,22 @@ npt.U = U;
 % Find the classical turning points
 [r_L_init,r_M_init] = findTurningPoints(r,U,Ug);
 
+% Initial bounds
 dR = r_M_init - r_L_init;
-
-xL = 1/sqrt(-0.5*Ug);
-
 r_H_init = r_L_init + dR*3;
 r_L_init = r_L_init - 1;
-
 
 if n >84
    r_H_init = r_L_init + dR*4;  
 end
 
-% if n==85
-%    r_H_init = 250; 
-% end
-
 npt.r_L = r_L_init;
 npt.r_M = r_M_init;
 npt.r_H = r_H_init;
+
+%% Initial Integration
+% Perform the initial calculation and increase the integrations bounds if
+% necessary
 
 disp('initial integration');
 [n_out,err,Y,X,x_nodes,Df,Db]=integrateSchrodinger(npt);
@@ -210,27 +185,15 @@ end
 
 
 [~,npt.r_M] = findTurningPoints(r,U,Ug);
-% if n==85
-%    npt.r_H = 250;
-% end
 
-%% Big Adjust
-
+%% Coarse Adjustment of Energy
 
 dN = n-n_out;
 dm_sign = 0.5*(sign(Db)-sign(Df));
-dm = Db - Df;
 
-
-% if dN || abs(dm)>1
 if dN || dm_sign
    warning(['Making adjustments ' num2str(n_out) ' nodes (' num2str(n) ...
         '); slope change sign : ' num2str(dm_sign)]);
-    % Integrate schrodinger equation from one of the last few nodes. This
-    % assumes that the integrated phase prior doesn't change much.
-    % 
-    % At the new rL y=0 and y'=c, where c sets an overal normalization. The
-    % idea is to reduce the boundary substantially.
         
     n_out0 = n_out;
     err0=err;
@@ -275,7 +238,6 @@ if dN || dm_sign
                 nptSub.E = nptSub.E + sgn*dE;        
                 [~,r_M_init] = findTurningPoints(r,U,nptSub.E);
                 nptSub.r_M = r_M_init;
-%                 fprintf([num2str(nptSub.E) ' ']);
                 [n_nodes_s,err_s,Y_s,X_s,r_nodeVec_s,Df_s,Db_s]=integrateSchrodinger(nptSub);                
                 
                 % Get the last node
@@ -306,7 +268,6 @@ if dN || dm_sign
     end   
 
     % Recalculate matching point
-%     nptSub.r_L = x_nodes(end-5);
     [~,r_M_init] = findTurningPoints(r,U,nptSub.E);
     nptSub.r_M = r_M_init;
     

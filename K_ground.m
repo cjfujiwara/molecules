@@ -36,15 +36,19 @@ end
 % Spatial vector
 RR = linspace(1,300,2e4)';
 
-% Potential for X^1 sigma^+_g (ground state)
+% Potential for X^1 sigma^+_g (ground state) in m^-1
 K_X_1_sigma;
 funcs;
 U_X_1_sigma = U(RR*A0);
 
-% Potential for a^3 sigma^+_u (first excited)
+% Potential for a^3 sigma^+_u (first excited) in m^-1
 K_a_3_sigma;
 funcs;
 U_a_3_sigma = U(RR*A0);
+
+% Normal energy with respect to the angstrom
+U_xsigma_normalized = (U_X_1_sigma*cL*h)/(hbar^2/(2*mu*A0^2));
+U_asigma_normalized = (U_a_3_sigma*cL*h)/(hbar^2/(2*mu*A0^2));
 
 
 %% Plot Potential Curves
@@ -106,20 +110,20 @@ xlabel(['separation ($\AA$)'],'interpreter','latex');
 
 
 %% Diagonalize X state
-U_xsigma_blah = (U_X_1_sigma*cL*h)/(hbar^2/(2*mu*A0^2));
 if m==39
     nMax = 86;
 else 
     nMax = 87;
 end
 
-Xsigma=solveRadial4(RR,U_xsigma_blah,nMax,200);
+% Solve schrodinger
+Xsigma=solveRadial4(RR,U_xsigma_normalized,nMax);
 
-% Convert units to useful ones
+% Convert energy to inverse meters
 eng_J = [Xsigma.E] * (hbar^2/(2*mu*A0^2));
-eng_cm = eng_J/(cL*h);
-eng_cm = num2cell(eng_cm);
-[Xsigma(:).E_cm] = deal(eng_cm{:});
+eng_m = eng_J/(cL*h);
+eng_m = num2cell(eng_m);
+[Xsigma(:).E_m] = deal(eng_m{:});
 
 %% Diagonalize a State
 if m==39
@@ -128,18 +132,19 @@ else
     nMax = 27;
 end
 
-U_asigma_blah = (U_a_3_sigma*cL*h)/(hbar^2/(2*mu*A0^2));
-
-figstart=100;
-asigma=solveRadial4(RR,U_asigma_blah,nMax,figstart);
+% Solve schrodinger
+asigma=solveRadial4(RR,U_asigma_normalized,nMax);
 
 % Convert units to useful ones
 eng_J = [asigma.E] * (hbar^2/(2*mu*A0^2));
-eng_cm = eng_J/(cL*h);
-eng_cm = num2cell(eng_cm);
-[asigma(:).E_cm] = deal(eng_cm{:});
+eng_m = eng_J/(cL*h);
+eng_m = num2cell(eng_m);
+[asigma(:).E_m] = deal(eng_m{:});
 
 %% Plot the Energies vs eigenvalue
+% Plot the energy versus the vibrational quantum number to show the LeRoy
+% Bersetein relationship 
+
 hF=figure(2);
 hF.Position=[100 100 600 400];
 
@@ -149,26 +154,26 @@ set(gcf,'color','w');
 
 % X1 energies
 X_Ub = min(U_X_1_sigma);
-X_Eb13 = (-[Xsigma.E_cm]).^(1/3);
+X_Eb13 = (-[Xsigma.E_m]).^(1/3);
 X_nu = [Xsigma.nodes];
 X_pp=polyfit(X_nu(end-6:end),X_Eb13(end-6:end),1);
 
-X_slope_str = [num2str(X_pp(1)) ' $\mathrm{cm}^{1/3}$'];
+X_slope_str = [num2str(X_pp(1)) ' $\mathrm{m}^{1/3}$'];
 
 % a3 energies
 a_Ub = min(U_a_3_sigma);
-a_Eb13 = (-[asigma.E_cm]).^(1/3);
+a_Eb13 = (-[asigma.E_m]).^(1/3);
 a_nu = [asigma.nodes];
 a_pp=polyfit(a_nu(end-6:end),a_Eb13(end-6:end),1);
 
-a_slope_str = [num2str(a_pp(1)) ' $\mathrm{cm}^{1/3}$'];
+a_slope_str = [num2str(a_pp(1)) ' $\mathrm{m}^{1/3}$'];
 
 tt=linspace(0,90,10);
 
 plot(X_nu,X_Eb13,'o','markerfacecolor',co(1,:),'markersize',6,...
     'linewidth',2,'markeredgecolor',co(1,:)*.8);
 % xlabel('$X^1\Sigma_g^+$ mode number','interpreter','latex');
-ylabel('binding energy $E_b^{1/3}~(\mathrm{cm}^{-1/3})$','interpreter','latex');
+ylabel('binding energy $E_b^{1/3}~(\mathrm{m}^{-1/3})$','interpreter','latex');
 xlim([-6 0]+max(X_nu)+1);
 ylim([0 10]);
 set(gca,'box','off','linewidth',1,'fontname','times','fontsize',14,...
@@ -178,7 +183,8 @@ pxf=plot(tt,X_pp(1)*tt+X_pp(2),'-','color',co(1,:)*.8,'linewidth',2);
 
 
 hAx(1)=gca;
-hAx(2)=axes('Position',hAx(1).Position,'XAxisLocation','top','YAxisLocation','right','color','none');
+hAx(2)=axes('Position',hAx(1).Position,'XAxisLocation','top',...
+    'YAxisLocation','right','color','none');
 hold(hAx(2),'on')
 pa=plot(hAx(2),a_nu,a_Eb13,'o','markerfacecolor',co(2,:),'markersize',6,...
     'linewidth',2,'markeredgecolor',co(2,:)*.8);
@@ -213,7 +219,6 @@ set(gcf,'color','w');
 co=get(gca,'colororder');
 clf;
 
-
 % Xsigma
 subplot(121)
 
@@ -224,7 +229,7 @@ hold on
 
 % Plot eigenvalues
 for kk=1:length(Xsigma)    
-    E = Xsigma(kk).E_cm;
+    E = Xsigma(kk).E_m;
     r_1 = Xsigma(kk).r_inner;
     r_2 = Xsigma(kk).r_outer;    
     plot([r_1 r_2],[1 1]*E*0.01/10^3,'-','color',co(1,:),'linewidth',1); 
@@ -251,7 +256,7 @@ hold on
 
 % Plot eigenvalues
 for kk=1:length(asigma)    
-    E = asigma(kk).E_cm;
+    E = asigma(kk).E_m;
     r_1 = asigma(kk).r_inner;
     r_2 = asigma(kk).r_outer;    
     plot([r_1 r_2],[1 1]*E*0.01/10^3,'-','color',co(2,:),'linewidth',1); 
@@ -287,30 +292,23 @@ hF.Position=[100 100 600 600];
 clf
 set(gcf,'color','w');
 
-% Plot potentials (versus bohr)
-plot([1 1]*Rvdw/a0,[-3 2],'k--');
-% plot([0 1]*Rvdw/a0,-[1 1]*Evdw,'k-');
-
 hold on
 
+% plot potential curves
 p1=plot(RR*A0/a0,U_X_1_sigma*cL*1e-9,'-','linewidth',3,'color',co(1,:));
 hold on
 p2=plot(RR*A0/a0,U_a_3_sigma*cL*1e-9,'-','linewidth',3,'color',co(2,:));
 legStr = {'$X{^{1}\Sigma}^+_g$','$a{^{3}\Sigma}^+_u$'};
-
 hold on
 
 
-% Plot eigenvalues
-
-% L_extra = zeros(
-for kk=(length(Xsigma)-1):length(Xsigma)    
-    
-    E = Xsigma(kk).E_cm*cL*1e-9;
+% Plot X Eigenstates
+for kk=(length(Xsigma)-1):length(Xsigma)        
+    E = Xsigma(kk).E_m*cL*1e-9;
     r_1 = Xsigma(kk).r_inner*A0/a0;
-    r_2 = Xsigma(kk).r_outer*A0/a0;
-    
+    r_2 = Xsigma(kk).r_outer*A0/a0;    
     Xe = Xsigma(kk).X(end)*A0/a0;
+    
     plot([r_1 r_2],[1 1]*E,'-','color',co(1,:),'linewidth',2); 
     plot([r_2 Xe+5],[1 1]*E,'--','color',co(1,:),'linewidth',1); 
     
@@ -325,15 +323,13 @@ for kk=(length(Xsigma)-1):length(Xsigma)
     A = .2;
     Y = Xsigma(kk).Y(:,1);
     Y = (A/max(Y))*Y;
-    X = Xsigma(kk).X*A0/a0;
-    
-    plot(X,Y+E,'-','color',co(1,:),'linewidth',1);
-    
+    X = Xsigma(kk).X*A0/a0;    
+    plot(X,Y+E,'-','color',co(1,:),'linewidth',1);    
 end
 
-% Plot eigenvalues
+% Plot a eigenstates
 for kk=(length(asigma)-1):length(asigma)    
-    E = asigma(kk).E_cm*cL*1e-9;
+    E = asigma(kk).E_m*cL*1e-9;
     r_1 = asigma(kk).r_inner*A0/a0;
     r_2 = asigma(kk).r_outer*A0/a0;        
     Xe = asigma(kk).X(end)*A0/a0;
@@ -343,42 +339,37 @@ for kk=(length(asigma)-1):length(asigma)
 
     
     str = ['$\nu=' num2str(kk) '$' newline ...
-        '$' num2str(round(1e3*E,1)) '~\mathrm{MHz},~' num2str(round(r_2,1)) 'a_0$'];
+        '$' num2str(round(1e3*E,1)) '~\mathrm{MHz},~' ...
+        num2str(round(r_2,1)) 'a_0$'];
 
     text(195,E+.02,str,'verticalalignment',...
         'bottom','fontsize',20,'fontname','times',...
         'color',co(2,:),'interpreter','latex',...
-        'horizontalalignment','right'); 
-    
+        'horizontalalignment','right');     
     
     A = .2;
     Y = asigma(kk).Y(:,1);
     Y = (A/max(Y))*Y;
     X = asigma(kk).X*A0/a0;
-    
-    plot(X,Y+E,'-','color',co(2,:),'linewidth',1);
-    
+    plot(X,Y+E,'-','color',co(2,:),'linewidth',1);    
 end
 
-
+% Axis labels
 xlim([2.5 200]);
 ylim([-2.3 .5]);
-
 ylabel('energy (GHz)','interpreter','latex');
-% xlabel(['separation (' char(197) ')']);
 xlabel(['separation ($a_0$)'],'interpreter','latex');
 
-str = {'$X~^{1}\Sigma^+_g$'};
-
-
+% Legend
 legend([p1 p2],legStr,'interpreter','latex','fontsize',18,'location','southeast',...
     'orientation','horizontal');
 
 
-
+% Other Settings
 set(gca,'xgrid','on','ygrid','on','fontsize',16,...
     'box','on','linewidth',1,'fontname','times');
 
+% Mass label
 text(.05,.98,mass_str,'interpreter','latex',...
     'units','normalized','horizontalalignment','left',...
     'verticalalignment','top','fontsize',24,'color','k');
