@@ -1,6 +1,3 @@
-%% Load constaints
-
-clear all
 %% Load Constants
 cm = 1e-2;                  % centimeter [m]
 cL = 299792458;             % speed of light [m/s]
@@ -34,6 +31,7 @@ else
 end
     
 %% Load Ground State Potentials Parameters
+% Potentials are specified with position of angstroms.
 
 % Spatial vector
 RR = linspace(1,300,2e4)';
@@ -49,9 +47,7 @@ funcs;
 U_a_3_sigma = U(RR*A0);
 
 
-%% Plot Potential Curveds
-
-legStr = {'$X~^{1}\Sigma^+_g$','$a~^{3}\Sigma^+_u$'};
+%% Plot Potential Curves
 
 hF=figure(10);
 hF.Position=[100 500 600 400];
@@ -63,6 +59,8 @@ ax1=axes;
 p1=plot(RR,U_X_1_sigma*0.01/10^3,'linewidth',2);
 hold on
 p2=plot(RR,U_a_3_sigma*0.01/10^3,'linewidth',2);
+
+% X and Y limits and other labels
 xlim([2.5 14.1]);
 ylim([-4.5 .8]);
 ylabel('V (10^3 cm^-1)');
@@ -81,26 +79,28 @@ ylabel('energy (THz)');
 set(gca,'YColor','k');
 yyaxis left
 
-legend([p1 p2],legStr,'interpreter','latex','fontsize',14,'location','northeast',...
-    'orientation','horizontal');
+% Create for plots
+legStr = {'$X~^{1}\Sigma^+_g$','$a~^{3}\Sigma^+_u$'};
+legend([p1 p2],legStr,'interpreter','latex','fontsize',14,...
+    'location','northeast','orientation','horizontal');
 
+% Secondary axis for zoom in
 ax2 = axes('units','normalized');
 ax2.Position(3)=.25;
 ax2.Position(4)= .2;
 ax2.Position(1) = ax1.Position(1)-ax2.Position(3)+ax1.Position(3);
 ax2.Position(2) = ax1.Position(2);
 
+% Plot on the zoom in
 plot(RR,U_X_1_sigma*.01,'linewidth',2);
 hold on
 plot(RR,U_a_3_sigma*.01,'--','linewidth',2);
 
-
+% Label the zoom in
 xlim([10.5 14.5]);
 ylim([-17 0]);
-
 set(gca,'ytick',[-15 -10 -5 0],'xaxislocation','top',...
     'xtick',[11 12 13 14]);
-
 ylabel('V $(\mathrm{cm}^{-1})$','interpreter','latex','fontsize',10);
 xlabel(['separation ($\AA$)'],'interpreter','latex');
 
