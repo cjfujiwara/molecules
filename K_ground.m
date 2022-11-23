@@ -37,7 +37,7 @@ end
 
 % Spatial vector
 RR = linspace(1,300,2e4)';
-% RR(end) = 
+
 % Potential for X^1 sigma^+_g (ground state)
 K_X_1_sigma;
 funcs;
