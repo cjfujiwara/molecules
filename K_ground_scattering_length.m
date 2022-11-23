@@ -34,7 +34,7 @@ end
 % Potentials are specified with position of angstroms.
 
 % Spatial vector
-RR = linspace(1,300,2e4)';
+RR = linspace(1,10000,2e5)';
 
 % Potential for X^1 sigma^+_g (ground state) in m^-1
 K_X_1_sigma;
@@ -49,3 +49,44 @@ U_a_3_sigma = U(RR*A0);
 % Normal energy with respect to the angstrom
 U_xsigma_normalized = (U_X_1_sigma*cL*h)/(hbar^2/(2*mu*A0^2));
 U_asigma_normalized = (U_a_3_sigma*cL*h)/(hbar^2/(2*mu*A0^2));
+
+
+%% 
+l=0;
+
+Escat = 1e-3;
+
+kVec = linspace(1e-3,.015,100)';
+
+dVec = zeros(length(eVec),1);
+for kk=1:length(eVec)
+    disp(kk);
+    E = kVec(kk)^2;
+%     delta = solveScatteringPhase(RR,U_xsigma_normalized,E,l);
+        delta = solveScatteringPhase(RR,U_asigma_normalized,E,l);
+
+    dVec(kk) = delta;
+end
+
+%%
+
+
+figure(4)
+clf
+a=54;
+% a=70;
+% p = linspace(
+
+kt=linspace(.0009,0.015,100);
+plot(kt,cotd,'r-','linewidth',2);
+hold on
+plot(kVec,cot(dVec),'ko')
+hold on
+
+re=40;
+% re=35;
+cotd=-1./(kt*a) + 0.5*re*kt;
+
+
+xlabel('momentum');
+ylabel('cot(delta)');
